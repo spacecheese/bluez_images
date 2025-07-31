@@ -36,3 +36,59 @@ jobs:
       with:
         name: ubuntu-bluez-${{ github.event.inputs.bluez_version }}.qcow2
         path: bluez-${{ github.event.inputs.bluez_version }}/ubuntu-bluez-${{ github.event.inputs.bluez_version }}-compressed.qcow2
+
+  test-image:
+    runs-on: ubuntu-latest
+    name: Test BlueZ over D-Bus
+    needs: build-image
+
+    steps:
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ubuntu-bluez-${{ github.event.inputs.bluez_version }}.qcow2
+          path: .
+
+      - name: Install runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-utils qemu-system-x86 openssh-client sshpass
+
+      - name: Start QEMU VM
+        run: |
+          qemu-system-x86_64 \
+            -m 1024 \
+            -smp 2 \
+            -nographic \
+            -drive file=ubuntu-bluez-5.70-compressed.qcow2,format=qcow2 \
+            -net nic -net user,hostfwd=tcp::2222-:22 \
+            -no-reboot \
+            -serial mon:stdio \
+            -daemonize
+
+      - name: Wait for SSH to become available
+        run: |
+          for i in {1..30}; do
+            if sshpass -p test ssh -o ConnectTimeout=3 -o StrictHostKeyChecking=no -p 2222 tester@localhost 'true' 2>/dev/null; then
+              echo "✅ SSH is available"
+              exit 0
+            fi
+            echo "Waiting for SSH..."
+            sleep 5
+          done
+          echo "❌ SSH not available"
+          exit 1
+
+      - name: Verify BlueZ is available on D-Bus
+        run: |
+          sshpass -p test ssh -p 2222 -o StrictHostKeyChecking=no tester@localhost \
+            "busctl --system status org.bluez"
+
+      - name: List Bluetooth adapters
+        run: |
+          sshpass -p test ssh -p 2222 -o StrictHostKeyChecking=no tester@localhost \
+            "busctl --system tree org.bluez"
+      
+      - name: Stop QEMU VM
+        run: |
+          sshpass -p test ssh -p 2222 -o StrictHostKeyChecking=no tester@localhost "sudo shutdown -h now"
