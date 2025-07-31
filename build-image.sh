@@ -9,6 +9,7 @@ CLOUDINIT_BUNDLE="${WORKDIR}/bluez-cloudinit-${BLUEZ_VERSION}.tar.gz"
 BASE_IMAGE="ubuntu-base.img"
 OUTPUT_IMAGE="ubuntu-bluez-${BLUEZ_VERSION}.qcow2"
 SEED_IMAGE="${WORKDIR}/seed.img"
+TARBALL_IMAGE="${WORKDIR}/bluez-tarball.img"
 
 echo "[*] Building BlueZ version: ${BLUEZ_VERSION}"
 mkdir -p "$WORKDIR"
@@ -36,6 +37,17 @@ make DESTDIR="$STAGING_DIR" install
 cd "$WORKDIR"
 tar czf "bluez-staging.tar.gz" -C staging .
 
+# Create and format disk
+mkdir -p "${WORKDIR}/mnt"
+dd if=/dev/zero of="$TARBALL_IMAGE" bs=1M count=64
+mkfs.vfat -n BLUEZ "$TARBALL_IMAGE"
+
+# Mount and copy tarball
+sudo mount -o loop "$TARBALL_IMAGE" "${WORKDIR}/mnt"
+sudo cp "$WORKDIR/bluez-staging.tar.gz" "${WORKDIR}/mnt/"
+sync
+sudo umount "${WORKDIR}/mnt"
+
 # ---------------------------------------------
 # Step 2: Prepare cloud-init config
 # ---------------------------------------------
@@ -62,15 +74,30 @@ users:
 packages:
   - dbus
   - python3
-  - sudo
+
+write_files:
+  - path: /usr/local/bin/bluez-init.sh
+    permissions: '0755'
+    owner: root:root
+    content: |
+      #!/bin/bash
+      set -eux
+
+      mkdir -p /mnt/extra
+      mount -L BLUEZ /mnt/extra || true
+
+      cp /mnt/extra/bluez-staging.tar.gz /tmp/
+      mkdir -p /tmp/bluez-staging
+      tar xzf /tmp/bluez-staging.tar.gz -C /tmp/bluez-staging
+
+      cp -a /tmp/bluez-staging/usr/* /usr/
+      cp -a /tmp/bluez-staging/etc/* /etc/
+      systemctl enable bluetooth
+
+      echo "success" > /mnt/extra/status.ok
 
 runcmd:
-  - mkdir -p /tmp/bluez-staging
-  - cp /var/lib/cloud/instance/bluez-staging.tar.gz /tmp/
-  - tar xzf /tmp/bluez-staging.tar.gz -C /tmp/bluez-staging
-  - cp -a /tmp/bluez-staging/usr/* /usr/
-  - cp -a /tmp/bluez-staging/etc/* /etc/
-  - systemctl enable bluetooth
+  - /usr/local/bin/bluez-init.sh
   - shutdown -h now
 EOF
 
@@ -102,10 +129,23 @@ qemu-system-x86_64 \
   -nographic \
   -drive file="$OUTPUT_IMAGE",format=qcow2 \
   -drive file="$SEED_IMAGE",format=raw \
+  -drive file="$TARBALL_IMAGE",format=raw,media=disk \
   -net nic -net user \
   -no-reboot \
   -serial mon:stdio \
   -display none
+
+# Wait for VM to shut down and check result
+sudo mount -o loop "$TARBALL_IMAGE" "${WORKDIR}/mnt"
+
+if [[ -f "${WORKDIR}/mnt/status.ok" ]]; then
+  sudo umount "${WORKDIR}/mnt"
+  echo "[✓] Cloud-init completed successfully."
+else
+  echo "[✗] Cloud-init failed or did not report status."
+  sudo umount "${WORKDIR}/mnt"
+  exit 1
+fi
 
 # ---------------------------------------------
 # Step 5: Optional compression
