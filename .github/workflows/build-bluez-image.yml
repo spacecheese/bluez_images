@@ -63,8 +63,9 @@ jobs:
             -drive file=ubuntu-bluez-5.70-compressed.qcow2,format=qcow2 \
             -net nic -net user,hostfwd=tcp::2222-:22 \
             -no-reboot \
-            -serial mon:stdio \
-            > qemu.log 2>&1 &
+            -serial file:serial.log \
+            -monitor none \
+            -daemonize
 
       - name: Wait for SSH to become available
         run: |
@@ -91,4 +92,5 @@ jobs:
       
       - name: Stop QEMU VM
         run: |
-          sshpass -p test ssh -p 2222 -o StrictHostKeyChecking=no tester@localhost "sudo shutdown -h now"
+          sshpass -p test ssh -p 2222 -o StrictHostKeyChecking=no tester@localhost \
+            "sudo shutdown -h now"
