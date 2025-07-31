@@ -1,0 +1,38 @@
+name: Build BlueZ VM Image with Cloud-Init
+
+on:
+  workflow_dispatch:
+    inputs:
+      bluez_version:
+        description: 'BlueZ version'
+        default: '5.70'
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    env:
+      BLUEZ_VERSION: ${{ github.event.inputs.bluez_version }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential libdbus-1-dev libudev-dev libical-dev \
+          libreadline-dev libglib2.0-dev libbluetooth-dev libusb-dev \
+          dbus wget curl ca-certificates python3 \
+          cloud-image-utils qemu-utils qemu-system-x86
+
+    - name: Run build and image script
+      run: |
+        chmod +x ./build-bluez-cloudinit-image.sh
+        ./build-bluez-cloudinit-image.sh "$BLUEZ_VERSION"
+
+    - name: Upload VM image
+      uses: actions/upload-artifact@v4
+      with:
+        name: ubuntu-bluez-${{ github.event.inputs.bluez_version }}.qcow2
+        path: bluez-${{ github.event.inputs.bluez_version }}/ubuntu-bluez-${{ github.event.inputs.bluez_version }}-compressed.qcow2
