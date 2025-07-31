@@ -97,7 +97,11 @@ write_files:
 
 runcmd:
   - /usr/local/bin/bluez-init.sh
-  - shutdown -h now
+
+power_state:
+  mode: poweroff
+  timeout: 30
+  condition: true
 EOF
 
 cp "bluez-staging.tar.gz" "${CLOUDINIT_DIR}/bluez-staging.tar.gz"
