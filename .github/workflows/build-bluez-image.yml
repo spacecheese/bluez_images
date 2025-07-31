@@ -28,8 +28,8 @@ jobs:
 
     - name: Run build and image script
       run: |
-        chmod +x ./build-bluez-cloudinit-image.sh
-        ./build-bluez-cloudinit-image.sh "$BLUEZ_VERSION"
+        chmod +x ./build-image.sh
+        ./build-image.sh "$BLUEZ_VERSION"
 
     - name: Upload VM image
       uses: actions/upload-artifact@v4
