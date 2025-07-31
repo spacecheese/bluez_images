@@ -66,6 +66,7 @@ jobs:
             -monitor none \
             -display none \
             -daemonize
+          tail -f serial.log &
 
       - name: Wait for SSH to become available
         run: |
