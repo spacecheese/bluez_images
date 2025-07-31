@@ -59,7 +59,6 @@ jobs:
           qemu-system-x86_64 \
             -m 1024 \
             -smp 2 \
-            -nographic \
             -drive file=ubuntu-bluez-5.70-compressed.qcow2,format=qcow2 \
             -net nic -net user,hostfwd=tcp::2222-:22 \
             -no-reboot \
