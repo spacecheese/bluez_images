@@ -63,8 +63,7 @@ jobs:
             -drive file=ubuntu-bluez-5.70-compressed.qcow2,format=qcow2 \
             -net nic -net user,hostfwd=tcp::2222-:22 \
             -no-reboot \
-            -serial mon:stdio \
-            -daemonize
+            -serial mon:stdio
 
       - name: Wait for SSH to become available
         run: |
