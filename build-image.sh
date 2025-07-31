@@ -91,7 +91,6 @@ write_files:
       tar xzf /tmp/bluez-staging.tar.gz -C /tmp/bluez-staging
 
       cp -a /tmp/bluez-staging/usr/* /usr/
-      cp -a /tmp/bluez-staging/etc/* /etc/
       systemctl enable bluetooth
 
       echo "success" > /mnt/extra/status.ok
