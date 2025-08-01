@@ -1,4 +1,4 @@
-name: Build BlueZ VM Image with Cloud-Init
+name: Build and Test Images
 
 on:
   release:
@@ -29,12 +29,12 @@ jobs:
           dbus wget curl ca-certificates python3 \
           cloud-image-utils qemu-utils qemu-system-x86
 
-    - name: Run build and image script
+    - name: Build QEMU image
       run: |
         chmod +x ./build-image.sh
         ./build-image.sh "$BLUEZ_VERSION"
 
-    - name: Upload VM image
+    - name: Upload image
       uses: actions/upload-artifact@v4
       with:
         name: ubuntu-bluez-${{ matrix.bluez_version }}.qcow2
@@ -77,13 +77,13 @@ jobs:
         run: |
           for i in {1..30}; do
             if sshpass -p test ssh -o ConnectTimeout=2 -o StrictHostKeyChecking=no -p 2222 tester@localhost 'true' 2>/dev/null; then
-              echo "✅ SSH is available"
+              echo "[✓] SSH is available"
               exit 0
             fi
-            echo "Waiting for SSH..."
+            echo "[*] Waiting for SSH..."
             sleep 5
           done
-          echo "❌ SSH not available"
+          echo "[✗] SSH not available"
           exit 1
 
       - name: Start BlueZ
