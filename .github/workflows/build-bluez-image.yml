@@ -39,7 +39,6 @@ jobs:
 
   test-image:
     runs-on: ubuntu-latest
-    name: Test BlueZ over D-Bus
     needs: build-image
 
     steps:
@@ -57,16 +56,17 @@ jobs:
       - name: Start QEMU VM
         run: |
           qemu-system-x86_64 \
-            -m 1024 \
+            -accel tcg \
+            -m 2048 \
             -smp 2 \
-            -drive file=ubuntu-bluez-${{ github.event.inputs.bluez_version }}-compressed.qcow2,format=qcow2 \
+            -cpu max \
+            -drive file=ubuntu-bluez-5.70-compressed.qcow2,format=qcow2 \
             -net nic -net user,hostfwd=tcp::2222-:22 \
             -no-reboot \
-            -serial file:serial.log \
+            -serial mon:stdio \
             -monitor none \
             -display none \
-            -daemonize
-          tail -f serial.log &
+            -nographic &
 
       - name: Wait for SSH to become available
         run: |
