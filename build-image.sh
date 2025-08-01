@@ -2,7 +2,7 @@
 set -euo pipefail
 
 BLUEZ_VERSION="${1:-5.70}"
-WORKDIR="$(pwd)/bluez-${BLUEZ_VERSION}"
+WORKDIR="$(pwd)/qemu-bluez-${BLUEZ_VERSION}"
 STAGING_DIR="${WORKDIR}/staging"
 CLOUDINIT_DIR="${WORKDIR}/cloudinit"
 CLOUDINIT_BUNDLE="${WORKDIR}/bluez-cloudinit-${BLUEZ_VERSION}.tar.gz"
@@ -28,11 +28,12 @@ sudo apt-get install -y build-essential libdbus-1-dev libudev-dev libical-dev \
   dbus wget curl ca-certificates python3 cloud-image-utils qemu-utils \
   python3-docutils
 
-./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var --enable-experimental
+./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var --enable-testing --enable-experimental
 make -j"$(nproc)"
 
 rm -rf "$STAGING_DIR"
 make DESTDIR="$STAGING_DIR" install
+cp emulator/btvirt $STAGING_DIR/usr/bin/
 
 cd "$WORKDIR"
 tar czf "bluez-staging.tar.gz" -C staging .
@@ -60,7 +61,7 @@ local-hostname: bluez-vm
 EOF
 
 # user-data
-cat > "${CLOUDINIT_DIR}/user-data" <<EOF
+cat > "${CLOUDINIT_DIR}/user-data" <<'EOF'
 #cloud-config
 hostname: bluez-vm
 ssh_pwauth: true
@@ -72,6 +73,7 @@ users:
     lock_passwd: false
     plain_text_passwd: test
 
+package_update: true
 packages:
   - dbus
   - python3
@@ -91,16 +93,20 @@ write_files:
       mkdir -p /tmp/bluez-staging
       tar xzf /tmp/bluez-staging.tar.gz -C /tmp/bluez-staging
 
+      sudo apt-get install -y linux-modules-extra-$(uname -r)
+      echo hci_vhci >> /etc/modules-load.d/hci_vhci.conf
+
       cp -a /tmp/bluez-staging/usr/* /usr/
       systemctl enable bluetooth
+
+      sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0"/' /etc/default/grub
+      echo 'GRUB_TERMINAL=serial' >> /etc/default/grub
+      update-grub
 
       echo "success" > /mnt/extra/status.ok
 
 runcmd:
   - /usr/local/bin/bluez-init.sh
-  - sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0"/' /etc/default/grub
-  - echo 'GRUB_TERMINAL=serial' >> /etc/default/grub
-  - update-grub
 
 power_state:
   mode: poweroff
@@ -120,7 +126,7 @@ cloud-localds "$SEED_IMAGE" "${CLOUDINIT_DIR}/user-data" "${CLOUDINIT_DIR}/meta-
 # Step 3: Download base cloud image
 # ---------------------------------------------
 if [[ ! -f "$BASE_IMAGE" ]]; then
-  wget -O "$BASE_IMAGE" https://cloud-images.ubuntu.com/minimal/releases/jammy/release/ubuntu-22.04-minimal-cloudimg-amd64.img
+  wget -O "$BASE_IMAGE" https://cloud-images.ubuntu.com/minimal/releases/noble/release/ubuntu-24.04-minimal-cloudimg-amd64.img
 fi
 
 cp "$BASE_IMAGE" "$OUTPUT_IMAGE"
