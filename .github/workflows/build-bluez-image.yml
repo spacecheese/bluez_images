@@ -35,7 +35,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ubuntu-bluez-${{ github.event.inputs.bluez_version }}.qcow2
-        path: bluez-${{ github.event.inputs.bluez_version }}/ubuntu-bluez-${{ github.event.inputs.bluez_version }}-compressed.qcow2
+        path: qemu-bluez-${{ github.event.inputs.bluez_version }}/ubuntu-bluez-${{ github.event.inputs.bluez_version }}-compressed.qcow2
 
   test-image:
     runs-on: ubuntu-latest
@@ -60,7 +60,7 @@ jobs:
             -m 2048 \
             -smp 2 \
             -cpu max \
-            -drive file=ubuntu-bluez-5.70-compressed.qcow2,format=qcow2 \
+            -drive file=ubuntu-bluez-${{ github.event.inputs.bluez_version }}-compressed.qcow2,format=qcow2 \
             -netdev user,id=net0,hostfwd=tcp::2222-:22 \
             -device virtio-net-pci,netdev=net0 \
             -no-reboot \
