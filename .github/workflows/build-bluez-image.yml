@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        bluez_version: [5.50, 5.66, 5.70]
+        bluez_version: ["5.50", "5.66", "5.70"]
 
     env:
       BLUEZ_VERSION: ${{ matrix.bluez_version }}
