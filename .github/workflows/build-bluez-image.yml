@@ -1,17 +1,20 @@
 name: Build BlueZ VM Image with Cloud-Init
 
 on:
+  release:
+    types: [published]
   workflow_dispatch:
-    inputs:
-      bluez_version:
-        description: 'BlueZ version'
-        default: '5.70'
 
 jobs:
   build-image:
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        bluez_version: [5.50, 5.66, 5.70]
+
     env:
-      BLUEZ_VERSION: ${{ github.event.inputs.bluez_version }}
+      BLUEZ_VERSION: ${{ matrix.bluez_version }}
 
     steps:
     - name: Checkout repository
@@ -34,8 +37,8 @@ jobs:
     - name: Upload VM image
       uses: actions/upload-artifact@v4
       with:
-        name: ubuntu-bluez-${{ github.event.inputs.bluez_version }}.qcow2
-        path: qemu-bluez-${{ github.event.inputs.bluez_version }}/ubuntu-bluez-${{ github.event.inputs.bluez_version }}-compressed.qcow2
+        name: ubuntu-bluez-${{ matrix.bluez_version }}.qcow2
+        path: qemu-bluez-${{ matrix.bluez_version }}/ubuntu-bluez-${{ matrix.bluez_version }}-compressed.qcow2
 
   test-image:
     runs-on: ubuntu-latest
@@ -45,7 +48,7 @@ jobs:
       - name: Download image artifact
         uses: actions/download-artifact@v4
         with:
-          name: ubuntu-bluez-${{ github.event.inputs.bluez_version }}.qcow2
+          name: ubuntu-bluez-${{ matrix.bluez_version }}.qcow2
           path: .
 
       - name: Install runtime dependencies
@@ -60,7 +63,7 @@ jobs:
             -m 2048 \
             -smp 2 \
             -cpu max \
-            -drive file=ubuntu-bluez-${{ github.event.inputs.bluez_version }}-compressed.qcow2,format=qcow2 \
+            -drive file=ubuntu-bluez-${{ matrix.bluez_version }}-compressed.qcow2,format=qcow2 \
             -netdev user,id=net0,hostfwd=tcp::2222-:22 \
             -device virtio-net-pci,netdev=net0 \
             -no-reboot \
