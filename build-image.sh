@@ -63,13 +63,14 @@ EOF
 cat > "${CLOUDINIT_DIR}/user-data" <<EOF
 #cloud-config
 hostname: bluez-vm
+ssh_pwauth: true
 users:
   - name: tester
     groups: sudo
     shell: /bin/bash
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
     lock_passwd: false
-    passwd: \$6\$rounds=4096\$Wv..tztDLz3\$CHf2e6slN8/0JpZbyToIZhStfWswR7fzrIlz6Sb1gWIJoSzZeDF/.lfOrqImqvhde/7xT47YgA2rhCKUVX7lF.  # password: test
+    plain_text_passwd: test
 
 packages:
   - dbus
@@ -97,6 +98,9 @@ write_files:
 
 runcmd:
   - /usr/local/bin/bluez-init.sh
+  - sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0"/' /etc/default/grub
+  - echo 'GRUB_TERMINAL=serial' >> /etc/default/grub
+  - update-grub
 
 power_state:
   mode: poweroff
@@ -133,7 +137,8 @@ qemu-system-x86_64 \
   -drive file="$OUTPUT_IMAGE",format=qcow2 \
   -drive file="$SEED_IMAGE",format=raw \
   -drive file="$TARBALL_IMAGE",format=raw,media=disk \
-  -net nic -net user \
+  -netdev user,id=net0,hostfwd=tcp::2222-:22 \
+  -device virtio-net-pci,netdev=net0 \
   -no-reboot \
   -serial mon:stdio \
   -display none

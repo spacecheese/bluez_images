@@ -61,18 +61,19 @@ jobs:
             -smp 2 \
             -cpu max \
             -drive file=ubuntu-bluez-5.70-compressed.qcow2,format=qcow2 \
-            -net nic -net user,hostfwd=tcp::2222-:22 \
+            -netdev user,id=net0,hostfwd=tcp::2222-:22 \
+            -device virtio-net-pci,netdev=net0 \
             -no-reboot \
-            -serial file:serial.log \
             -monitor none \
             -display none \
+            -serial file:serial.log \
             -daemonize
           tail -f serial.log &
 
       - name: Wait for SSH to become available
         run: |
           for i in {1..30}; do
-            if sshpass -p test ssh -o ConnectTimeout=3 -o StrictHostKeyChecking=no -p 2222 tester@localhost 'true' 2>/dev/null; then
+            if sshpass -p test ssh -o ConnectTimeout=2 -o StrictHostKeyChecking=no -p 2222 tester@localhost 'true' 2>/dev/null; then
               echo "✅ SSH is available"
               exit 0
             fi
@@ -96,3 +97,4 @@ jobs:
         run: |
           sshpass -p test ssh -p 2222 -o StrictHostKeyChecking=no tester@localhost \
             "sudo shutdown -h now"
+            
