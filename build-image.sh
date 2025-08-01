@@ -33,7 +33,7 @@ make -j"$(nproc)"
 
 rm -rf "$STAGING_DIR"
 make DESTDIR="$STAGING_DIR" install
-cp emulator/btvirt $STAGING_DIR/usr/bin/
+cp emulator/btvirt tools/btmgmt $STAGING_DIR/usr/bin/
 
 cd "$WORKDIR"
 tar czf "bluez-staging.tar.gz" -C staging .
