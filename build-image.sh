@@ -2,22 +2,24 @@
 set -euo pipefail
 
 BLUEZ_VERSION="${1:-5.70}"
-WORKDIR="$(pwd)/qemu-bluez-${BLUEZ_VERSION}"
+OS_VERSION_STR="${2:-ubuntu-24.04}"
+eval "$(./resolve-os.sh ${OS_VERSION_STR})"
+
+WORKDIR="$(pwd)/${OS_VERSION_STR}-bluez-${BLUEZ_VERSION}"
 STAGING_DIR="${WORKDIR}/staging"
 CLOUDINIT_DIR="${WORKDIR}/cloudinit"
-CLOUDINIT_BUNDLE="${WORKDIR}/bluez-cloudinit-${BLUEZ_VERSION}.tar.gz"
-BASE_IMAGE="ubuntu-base.img"
-OUTPUT_IMAGE="ubuntu-bluez-${BLUEZ_VERSION}.qcow2"
-SEED_IMAGE="${WORKDIR}/seed.img"
-TARBALL_IMAGE="${WORKDIR}/bluez-tarball.img"
 
-echo "[*] Building BlueZ version: ${BLUEZ_VERSION}"
+OUTPUT_IMAGE="${OS_VERSION_STR}-bluez-${BLUEZ_VERSION}.qcow2"
+SEED_IMAGE="${WORKDIR}/seed.img"
+STAGING_IMAGE="${WORKDIR}/bluez-tarball.img"
+
+echo "[*] Building BlueZ version ${BLUEZ_VERSION} on ${OS_VERSION_STR}"
 mkdir -p "$WORKDIR"
 cd "$WORKDIR"
 
-# ---------------------------------------------
-# Step 1: Download and build BlueZ
-# ---------------------------------------------
+# ----------------------------
+# Download and build BlueZ
+# ----------------------------
 wget -nc "https://www.kernel.org/pub/linux/bluetooth/bluez-${BLUEZ_VERSION}.tar.xz"
 tar xf "bluez-${BLUEZ_VERSION}.tar.xz"
 cd "bluez-${BLUEZ_VERSION}"
@@ -40,27 +42,25 @@ tar czf "bluez-staging.tar.gz" -C staging .
 
 # Create and format disk
 mkdir -p "${WORKDIR}/mnt"
-dd if=/dev/zero of="$TARBALL_IMAGE" bs=1M count=64
-mkfs.vfat -n BLUEZ "$TARBALL_IMAGE"
+dd if=/dev/zero of="$STAGING_IMAGE" bs=1M count=64
+mkfs.vfat -n BLUEZ "$STAGING_IMAGE"
 
 # Mount and copy tarball
-sudo mount -o loop "$TARBALL_IMAGE" "${WORKDIR}/mnt"
+sudo mount -o loop "$STAGING_IMAGE" "${WORKDIR}/mnt"
 sudo cp "$WORKDIR/bluez-staging.tar.gz" "${WORKDIR}/mnt/"
 sync
 sudo umount "${WORKDIR}/mnt"
 
-# ---------------------------------------------
-# Step 2: Prepare cloud-init config
-# ---------------------------------------------
+# -----------------------------
+# Prepare cloud-init config
+# -----------------------------
 mkdir -p "$CLOUDINIT_DIR"
 
-# meta-data
 cat > "${CLOUDINIT_DIR}/meta-data" <<EOF
 instance-id: bluez-${BLUEZ_VERSION}
 local-hostname: bluez-vm
 EOF
 
-# user-data
 cat > "${CLOUDINIT_DIR}/user-data" <<'EOF'
 #cloud-config
 hostname: bluez-vm
@@ -116,24 +116,21 @@ EOF
 
 cp "bluez-staging.tar.gz" "${CLOUDINIT_DIR}/bluez-staging.tar.gz"
 
-# Bundle optional archive
-tar czf "$CLOUDINIT_BUNDLE" -C "$CLOUDINIT_DIR" .
-
 # Create seed.img
 cloud-localds "$SEED_IMAGE" "${CLOUDINIT_DIR}/user-data" "${CLOUDINIT_DIR}/meta-data"
 
-# ---------------------------------------------
-# Step 3: Download base cloud image
-# ---------------------------------------------
-if [[ ! -f "$BASE_IMAGE" ]]; then
-  wget -O "$BASE_IMAGE" https://cloud-images.ubuntu.com/minimal/releases/noble/release/ubuntu-24.04-minimal-cloudimg-amd64.img
+# -----------------------------
+# Download base cloud image
+# -----------------------------
+if [[ ! -f "base.img" ]]; then
+  wget -O "base.img" ${OS_CLOUDIMG}
 fi
 
-cp "$BASE_IMAGE" "$OUTPUT_IMAGE"
+cp "base.img" "$OUTPUT_IMAGE"
 
-# ---------------------------------------------
-# Step 4: Boot VM to trigger cloud-init
-# ---------------------------------------------
+# ---------------------------------
+# Boot VM to trigger cloud-init
+# ---------------------------------
 echo "[*] Booting QEMU to apply cloud-init (you may see a console)..."
 
 qemu-system-x86_64 \
@@ -142,7 +139,7 @@ qemu-system-x86_64 \
   -nographic \
   -drive file="$OUTPUT_IMAGE",format=qcow2 \
   -drive file="$SEED_IMAGE",format=raw \
-  -drive file="$TARBALL_IMAGE",format=raw,media=disk \
+  -drive file="$STAGING_IMAGE",format=raw,media=disk \
   -netdev user,id=net0,hostfwd=tcp::2222-:22 \
   -device virtio-net-pci,netdev=net0 \
   -no-reboot \
@@ -150,7 +147,7 @@ qemu-system-x86_64 \
   -display none
 
 # Wait for VM to shut down and check result
-sudo mount -o loop "$TARBALL_IMAGE" "${WORKDIR}/mnt"
+sudo mount -o loop "$STAGING_IMAGE" "${WORKDIR}/mnt"
 
 if [[ -f "${WORKDIR}/mnt/status.ok" ]]; then
   sudo umount "${WORKDIR}/mnt"
@@ -161,11 +158,8 @@ else
   exit 1
 fi
 
-# ---------------------------------------------
-# Step 5: Optional compression
-# ---------------------------------------------
 echo "[*] Compressing image..."
 qemu-img convert -O qcow2 -c "$OUTPUT_IMAGE" "${OUTPUT_IMAGE%.qcow2}-compressed.qcow2"
 
 echo "[✓] Done!"
-echo " - Final image: ${OUTPUT_IMAGE%.qcow2}-compressed.qcow2"
+echo " - Final image: ${WORKDIR}/${OUTPUT_IMAGE%.qcow2}-compressed.qcow2"

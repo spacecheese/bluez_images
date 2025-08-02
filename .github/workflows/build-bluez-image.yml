@@ -7,14 +7,28 @@ on:
 
 jobs:
   build-image:
-    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        bluez_version: ["5.64", "5.66", "5.70"]
+        bluez_version: ["5.50", "5.64", "5.66", "5.70"]
+        os: ["ubuntu-20.04", "ubuntu-24.04"]
+        include:
+          - bluez: "5.50"
+            os: ubuntu-20.04
+          - bluez: "5.64"
+            os: ubuntu-24.04
+          - bluez: "5.66"
+            os: ubuntu-24.04
+          - bluez: "5.70"
+            os: ubuntu-24.04
+
+    runs-on: ${{ matrix.os }}
 
     env:
+      OS: ${{ matrix.os }}
       BLUEZ_VERSION: ${{ matrix.bluez_version }}
+      IMAGE_SPEC: ${{ matrix.os }}-bluez-${{ matrix.bluez_version }}
+      OUTPUT_IMAGE: ${{ env.IMAGE_SPEC }}/${{ env.IMAGE_SPEC }}-compressed.qcow2
 
     steps:
     - name: Checkout repository
@@ -30,25 +44,29 @@ jobs:
           cloud-image-utils qemu-utils qemu-system-x86
 
     - name: Build QEMU image
-      run: |
-        chmod +x ./build-image.sh
-        ./build-image.sh "$BLUEZ_VERSION"
+      run: ./build-image.sh "$BLUEZ_VERSION" "$OS"
 
     - name: Upload image
       uses: actions/upload-artifact@v4
       with:
-        name: ubuntu-bluez-${{ matrix.bluez_version }}.qcow2
-        path: qemu-bluez-${{ matrix.bluez_version }}/ubuntu-bluez-${{ matrix.bluez_version }}-compressed.qcow2
+        name: ${{ env.IMAGE_SPEC }}.qcow2
+        path: ${{ env.OUTPUT_IMAGE }}
+
+    outputs:
+      matrix: toJson(strategy.matrix)
+      output_image: ${{ env.IMAGE_SPEC }}.qcow2
 
   test-image:
     runs-on: ubuntu-latest
     needs: build-image
+    strategy: 
+      matrix: ${{ fromJson(needs.build-image.outputs.matrix) }}
 
     steps:
       - name: Download image artifact
         uses: actions/download-artifact@v4
         with:
-          name: ubuntu-bluez-${{ matrix.bluez_version }}.qcow2
+          name: ${{ needs.build-image.outputs.output_image }}
           path: .
 
       - name: Install runtime dependencies
@@ -56,55 +74,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y qemu-utils qemu-system-x86 openssh-client sshpass
 
-      - name: Start QEMU VM
+      - name: Test Image
         run: |
-          qemu-system-x86_64 \
-            -accel tcg \
-            -m 2048 \
-            -smp 2 \
-            -cpu max \
-            -drive file=ubuntu-bluez-${{ matrix.bluez_version }}-compressed.qcow2,format=qcow2 \
-            -netdev user,id=net0,hostfwd=tcp::2222-:22 \
-            -device virtio-net-pci,netdev=net0 \
-            -no-reboot \
-            -monitor none \
-            -display none \
-            -serial file:serial.log \
-            -daemonize
-          tail -f serial.log &
-
-      - name: Wait for SSH to become available
-        run: |
-          for i in {1..30}; do
-            if sshpass -p test ssh -o ConnectTimeout=2 -o StrictHostKeyChecking=no -p 2222 tester@localhost 'true' 2>/dev/null; then
-              echo "[✓] SSH is available"
-              exit 0
-            fi
-            echo "[*] Waiting for SSH..."
-            sleep 5
-          done
-          echo "[✗] SSH not available"
-          exit 1
-
-      - name: Start BlueZ
-        run: |
-          sshpass -p test ssh -p 2222 -o StrictHostKeyChecking=no tester@localhost "
-            sudo nohup btvirt -L -l >/dev/null 2>&1 &
-            sudo service bluetooth start
-            exit 0
-          "
-
-      - name: Verify BlueZ is available on D-Bus
-        run: |
-          sshpass -p test ssh -p 2222 -o StrictHostKeyChecking=no tester@localhost \
-          "busctl --system status org.bluez"
-
-      - name: List Bluetooth adapters
-        run: |
-          sshpass -p test ssh -p 2222 -o StrictHostKeyChecking=no tester@localhost \
-            "busctl --system tree org.bluez"
-      
-      - name: Stop QEMU VM
-        run: |
-          sshpass -p test ssh -p 2222 -o StrictHostKeyChecking=no tester@localhost \
-            "sudo shutdown -h now"
+          ./test-image.sh ${{ needs.build-image.outputs.output_image }}
