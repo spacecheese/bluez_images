@@ -28,7 +28,6 @@ jobs:
       OS: ${{ matrix.os }}
       BLUEZ_VERSION: ${{ matrix.bluez_version }}
       IMAGE_SPEC: ${{ matrix.os }}-bluez-${{ matrix.bluez_version }}
-      OUTPUT_IMAGE: ${{ env.IMAGE_SPEC }}/${{ env.IMAGE_SPEC }}-compressed.qcow2
 
     steps:
     - name: Checkout repository
@@ -50,7 +49,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.IMAGE_SPEC }}.qcow2
-        path: ${{ env.OUTPUT_IMAGE }}
+        path: ${{ env.IMAGE_SPEC }}/${{ env.IMAGE_SPEC }}-compressed.qcow2
 
     outputs:
       matrix: toJson(strategy.matrix)
