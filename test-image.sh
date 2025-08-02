@@ -36,17 +36,18 @@ if [[ $SSH_UP -ne 1 ]]; then
     exit 1
 fi
 
-sshpass -p test ssh -p 2222 -o StrictHostKeyChecking=no tester@localhost "
-    #!/usr/bin/env bash
-    set -euo pipefail
+sshpass -p test ssh -p 2222 -o StrictHostKeyChecking=no tester@localhost '
+    EXIT_STATUS=0
 
     echo "[*] Starting Bluez"
     sudo nohup btvirt -L -l >/dev/null 2>&1 &
-    sudo service bluetooth start
+    sudo service bluetooth start || EXIT_STATUS=1
 
     echo "[*] Checking Bluez DBus"
-    busctl --system tree org.bluez
+    busctl --system tree org.bluez || EXIT_STATUS=1
 
     echo "[*] Stopping QEMU"
     sudo shutdown -h now
-"
+
+    exit $EXIT_STATUS
+'
