@@ -11,13 +11,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - bluez: "5.50"
+          - bluez_version: "5.50"
             os: "ubuntu-20.04"
-          - bluez: "5.64"
+          - bluez_version: "5.64"
             os: "ubuntu-24.04"
-          - bluez: "5.66"
+          - bluez_version: "5.66"
             os: "ubuntu-24.04"
-          - bluez: "5.70"
+          - bluez_version: "5.70"
             os: "ubuntu-24.04"
 
     runs-on: ${{ matrix.os }}
