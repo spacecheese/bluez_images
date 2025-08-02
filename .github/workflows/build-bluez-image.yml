@@ -12,7 +12,7 @@ jobs:
       matrix:
         include:
           - bluez_version: "5.50"
-            os: "ubuntu-20.04"
+            os: "ubuntu-22.04"
           - bluez_version: "5.64"
             os: "ubuntu-24.04"
           - bluez_version: "5.66"
