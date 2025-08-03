@@ -80,7 +80,7 @@ jobs:
       - name: Download image artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ needs.build-image.outputs.output_image }}
+          name: ${{ env.IMAGE_SPEC }}.qcow2
           path: .
 
       - name: Install runtime dependencies
