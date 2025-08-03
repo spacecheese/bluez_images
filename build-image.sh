@@ -24,8 +24,8 @@ wget -nc "https://www.kernel.org/pub/linux/bluetooth/bluez-${BLUEZ_VERSION}.tar.
 tar xf "bluez-${BLUEZ_VERSION}.tar.xz"
 cd "bluez-${BLUEZ_VERSION}"
 
-apt-get update
-apt-get install -y build-essential libdbus-1-dev libudev-dev libical-dev \
+sudo apt-get update
+sudo apt-get install -y build-essential libdbus-1-dev libudev-dev libical-dev \
   libreadline-dev libglib2.0-dev libbluetooth-dev libusb-dev \
   dbus wget curl ca-certificates python3 cloud-image-utils qemu-utils \
   python3-docutils udev
@@ -46,10 +46,10 @@ mkfs.vfat -n BLUEZ "$STAGING_IMAGE"
 
 # Mount and copy tarball
 mkdir -p "$WORKDIR/mnt"
-mount -o loop "$STAGING_IMAGE" "$WORKDIR/mnt"
-cp "$WORKDIR/bluez-staging.tar.gz" "$WORKDIR/mnt/"
+sudo mount -o loop "$STAGING_IMAGE" "${WORKDIR}/mnt"
+sudo cp "$WORKDIR/bluez-staging.tar.gz" "${WORKDIR}/mnt/"
 sync
-umount "$WORKDIR/mnt"
+sudo umount "${WORKDIR}/mnt"
 
 # -----------------------------
 # Prepare cloud-init config
@@ -147,14 +147,14 @@ qemu-system-x86_64 \
   -display none
 
 # Wait for VM to shut down and check result
-mount -o loop "$STAGING_IMAGE" "${WORKDIR}/mnt"
+sudo mount -o loop "$STAGING_IMAGE" "${WORKDIR}/mnt"
 
 if [[ -f "${WORKDIR}/mnt/status.ok" ]]; then
-  umount "${WORKDIR}/mnt"
+  sudo umount "${WORKDIR}/mnt"
   echo "[✓] Cloud-init completed successfully."
 else
   echo "[✗] Cloud-init failed or did not report status."
-  umount "${WORKDIR}/mnt"
+  sudo umount "${WORKDIR}/mnt"
   exit 1
 fi
 
