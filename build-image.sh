@@ -47,6 +47,7 @@ mkfs.vfat -n BLUEZ "$STAGING_IMAGE"
 mkdir -p "$WORKDIR/mnt"
 sudo mount -o loop "$STAGING_IMAGE" "${WORKDIR}/mnt"
 sudo cp -r "${STAGING_DIR}/"* "${WORKDIR}/mnt"
+sudo mkdir -p "${WORKDIR}/mnt/var/lib/bluetooth"
 sync
 sudo umount "${WORKDIR}/mnt"
 
