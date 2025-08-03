@@ -41,27 +41,27 @@ cd "$WORKDIR"
 tar czf "bluez-staging.tar.gz" -C staging .
 
 # Create and format disk
-mkdir -p "${WORKDIR}/mnt"
 dd if=/dev/zero of="$STAGING_IMAGE" bs=1M count=64
 mkfs.vfat -n BLUEZ "$STAGING_IMAGE"
 
 # Mount and copy tarball
-mount -o loop "$STAGING_IMAGE" "${WORKDIR}/mnt"
-cp "$WORKDIR/bluez-staging.tar.gz" "${WORKDIR}/mnt/"
+mkdir -p "$WORKDIR/mnt"
+mount -o loop "$STAGING_IMAGE" "$WORKDIR/mnt"
+cp "$WORKDIR/bluez-staging.tar.gz" "$WORKDIR/mnt/"
 sync
-umount "${WORKDIR}/mnt"
+umount "$WORKDIR/mnt"
 
 # -----------------------------
 # Prepare cloud-init config
 # -----------------------------
 mkdir -p "$CLOUDINIT_DIR"
 
-cat > "${CLOUDINIT_DIR}/meta-data" <<EOF
+cat > "$CLOUDINIT_DIR/meta-data" <<EOF
 instance-id: bluez-${BLUEZ_VERSION}
 local-hostname: bluez-vm
 EOF
 
-cat > "${CLOUDINIT_DIR}/user-data" <<'EOF'
+cat > "$CLOUDINIT_DIR/user-data" <<'EOF'
 #cloud-config
 hostname: bluez-vm
 ssh_pwauth: true
