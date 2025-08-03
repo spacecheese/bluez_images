@@ -11,7 +11,7 @@ CLOUDINIT_DIR="${WORKDIR}/cloudinit"
 
 OUTPUT_IMAGE="${OS_VERSION_STR}-bluez-${BLUEZ_VERSION}.qcow2"
 SEED_IMAGE="${WORKDIR}/seed.img"
-STAGING_IMAGE="${WORKDIR}/bluez-tarball.img"
+STAGING_IMAGE="${WORKDIR}/bluez-staging.img"
 
 echo "[*] Building BlueZ version ${BLUEZ_VERSION} on ${OS_VERSION_STR}"
 mkdir -p "$WORKDIR"
@@ -38,16 +38,15 @@ make DESTDIR="$STAGING_DIR" install
 cp emulator/btvirt tools/btmgmt $STAGING_DIR/usr/bin/
 
 cd "$WORKDIR"
-tar czf "bluez-staging.tar.gz" -C staging .
 
 # Create and format disk
 dd if=/dev/zero of="$STAGING_IMAGE" bs=1M count=64
 mkfs.vfat -n BLUEZ "$STAGING_IMAGE"
 
-# Mount and copy tarball
+# Mount and copy binaries
 mkdir -p "$WORKDIR/mnt"
 sudo mount -o loop "$STAGING_IMAGE" "${WORKDIR}/mnt"
-sudo cp "$WORKDIR/bluez-staging.tar.gz" "${WORKDIR}/mnt/"
+sudo cp -r "${STAGING_DIR}/"* "${WORKDIR}/mnt"
 sync
 sudo umount "${WORKDIR}/mnt"
 
@@ -89,14 +88,10 @@ write_files:
       mkdir -p /mnt/extra
       mount -L BLUEZ /mnt/extra || true
 
-      cp /mnt/extra/bluez-staging.tar.gz /tmp/
-      mkdir -p /tmp/bluez-staging
-      tar xzf /tmp/bluez-staging.tar.gz -C /tmp/bluez-staging
-
       sudo apt-get install -y linux-modules-extra-$(uname -r)
       echo hci_vhci >> /etc/modules-load.d/hci_vhci.conf
 
-      cp -a /tmp/bluez-staging/usr/* /usr/
+      cp -a /mnt/extra/* /
       systemctl enable bluetooth
 
       sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0"/' /etc/default/grub
@@ -113,8 +108,6 @@ power_state:
   timeout: 30
   condition: true
 EOF
-
-cp "bluez-staging.tar.gz" "${CLOUDINIT_DIR}/bluez-staging.tar.gz"
 
 # Create seed.img
 cloud-localds "$SEED_IMAGE" "${CLOUDINIT_DIR}/user-data" "${CLOUDINIT_DIR}/meta-data"
@@ -164,4 +157,4 @@ rm -f $OUTPUT_IMAGE
 mv ${OUTPUT_IMAGE%.qcow2}-compressed.qcow2 $OUTPUT_IMAGE
 
 echo "[✓] Done!"
-echo " - Final image: ${WORKDIR}/${OUTPUT_IMAGE%.qcow2}-compressed.qcow2"
+echo " - Final image: $OUTPUT_IMAGE"
