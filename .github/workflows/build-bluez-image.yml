@@ -63,15 +63,15 @@ jobs:
         name: ${{ env.IMAGE_SPEC }}.qcow2
         path: ${{ env.IMAGE_SPEC }}/${{ env.IMAGE_SPEC }}-compressed.qcow2
 
-    outputs:
-      output_image: ${{ env.IMAGE_SPEC }}.qcow2
-
   test-image:
     runs-on: ubuntu-latest
     needs: [setup, build-image]
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
+
+    env:
+      IMAGE_SPEC: ${{ matrix.os }}-bluez-${{ matrix.bluez_version }}
 
     steps:
       - name: Checkout repository
@@ -90,4 +90,4 @@ jobs:
 
       - name: Test Image
         run: |
-          ./test-image.sh ${{ needs.build-image.outputs.output_image }}
+          ./test-image.sh ${{ env.IMAGE_SPEC }}.qcow2
