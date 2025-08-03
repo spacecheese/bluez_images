@@ -34,7 +34,7 @@ jobs:
 
   build-image:
     strategy:
-      matrix: ${{ fromJson(needs.build-image.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
 
     needs: setup
     runs-on: ubuntu-latest
