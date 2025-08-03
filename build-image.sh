@@ -28,7 +28,7 @@ apt-get update
 apt-get install -y build-essential libdbus-1-dev libudev-dev libical-dev \
   libreadline-dev libglib2.0-dev libbluetooth-dev libusb-dev \
   dbus wget curl ca-certificates python3 cloud-image-utils qemu-utils \
-  python3-docutils
+  python3-docutils udev
 
 ./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var --enable-testing --enable-experimental
 make -j"$(nproc)"
