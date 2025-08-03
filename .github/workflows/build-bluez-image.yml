@@ -10,15 +10,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
       - name: Set Matrix
-        run: |
-          echo 'matrix={"include":[
-            {"bluez_version":"5.50","os":"ubuntu-22.04","build_container":"ubuntu:22.04"},
-            {"bluez_version":"5.64","os":"ubuntu-24.04","build_container":"ubuntu:24.04"},
-            {"bluez_version":"5.66","os":"ubuntu-24.04","build_container":"ubuntu:24.04"},
-            {"bluez_version":"5.70","os":"ubuntu-24.04","build_container":"ubuntu:24.04"}
-          ]}' >> $GITHUB_OUTPUT
+        id: setup-matrix
+        uses: druzsan/setup-matrix@v2
+        with:
+          # Use | to preserve valid YAML syntax
+          matrix: |
+            include:
+            - bluez_version: "5.50"
+              os: "ubuntu-22.04"
+            - bluez_version: "5.64"
+              os: "ubuntu-24.04"
+            - bluez_version: "5.66"
+              os: "ubuntu-24.04"
+            - bluez_version: "5.70"
+              os: "ubuntu-24.04"
 
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
