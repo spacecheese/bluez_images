@@ -7,7 +7,6 @@ OS="${OS_VERSION_STR%%-*}"
 VERSION="${OS_VERSION_STR#*-}"
 CODENAME=""
 CLOUDIMG=""
-DOCKERIMG=""
 
 case "$OS" in
   ubuntu)
@@ -22,7 +21,6 @@ case "$OS" in
     esac
 
     CLOUDIMG="https://cloud-images.ubuntu.com/minimal/releases/${CODENAME}/release/ubuntu-${VERSION}-minimal-cloudimg-amd64.img"
-    DOCKERIMG="ubuntu:${VERSION}"
     ;;
   *)
     echo "Error: Unsupported OS: $OS" >&2
@@ -33,4 +31,3 @@ esac
 echo "OS_VERSION=$VERSION"
 echo "OS_CODENAME=$CODENAME"
 echo "OS_CLOUDIMG=$CLOUDIMG"
-echo "OS_DOCKERIMG=$DOCKERIMG"
