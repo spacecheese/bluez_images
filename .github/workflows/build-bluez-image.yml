@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-image:
+  setup:
     strategy:
       fail-fast: false
       matrix:
@@ -20,7 +20,23 @@ jobs:
           - bluez_version: "5.70"
             os: "ubuntu-24.04"
 
-    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: resolve
+        run: |
+          ./resolve-os.sh "${{ matrix.os }}" >> $GITHUB_OUTPUT
+
+    outputs:
+      matrix: toJson(strategy.matrix)
+      dockerimg: ${{ steps.resolve.outputs.dockerimg }}
+
+  build-image:
+    strategy:
+      matrix: ${{ fromJson(needs.build-image.outputs.matrix) }}
+
+    needs: setup
+    runs-on: ubuntu-latest
+    container: ${{ needs.setup.outputs.dockerimg }}
 
     env:
       OS: ${{ matrix.os }}
