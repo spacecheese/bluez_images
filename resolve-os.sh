@@ -11,6 +11,7 @@ CLOUDIMG=""
 case "$OS" in
   ubuntu)
     case "$VERSION" in
+      18.04) CODENAME="bionic" ;;
       20.04) CODENAME="focal" ;;
       22.04) CODENAME="jammy" ;;
       24.04) CODENAME="noble" ;;
