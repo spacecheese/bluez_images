@@ -59,7 +59,8 @@ jobs:
           build-essential libdbus-1-dev libudev-dev libical-dev \
           libreadline-dev libglib2.0-dev libbluetooth-dev libusb-dev \
           dbus wget curl ca-certificates python3 \
-          cloud-image-utils qemu-utils qemu-system-x86
+          cloud-image-utils qemu-utils qemu-system-x86 \
+          dosfstools
 
     - name: Build QEMU image
       run: ./build-image.sh "$BLUEZ_VERSION" "$OS"
