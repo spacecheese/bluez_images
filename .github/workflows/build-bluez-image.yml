@@ -19,26 +19,21 @@ jobs:
             include:
             - bluez_version: "5.64"
               os: "ubuntu-24.04"
-              build_container: "ubuntu:24.04"
             - bluez_version: "5.66"
               os: "ubuntu-24.04"
-              build_container: "ubuntu:24.04"
             - bluez_version: "5.70"
               os: "ubuntu-24.04"
-              build_container: "ubuntu:24.04"
 
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
 
   build-image:
     needs: setup
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
-
-    container: ${{ matrix.build_container }}
 
     env:
       OS: ${{ matrix.os }}
