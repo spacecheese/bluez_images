@@ -38,6 +38,7 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
 
     container: ${{ matrix.build_container }}
@@ -75,7 +76,8 @@ jobs:
   test-image:
     runs-on: ubuntu-latest
     needs: [setup, build-image]
-    strategy: 
+    strategy:
+      fail-fast: false
       matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
 
     steps:
