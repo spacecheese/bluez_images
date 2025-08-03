@@ -63,6 +63,14 @@ jobs:
         name: ${{ env.IMAGE_SPEC }}.qcow2
         path: ${{ env.IMAGE_SPEC }}/${{ env.IMAGE_SPEC }}.qcow2
 
+    - name: Attach image to GitHub Release
+      if: github.event_name == 'release'
+      uses: softprops/action-gh-release@v2
+      with:
+        files: ${{ env.IMAGE_SPEC }}/${{ env.IMAGE_SPEC }}.qcow2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   test-image:
     runs-on: ubuntu-latest
     needs: [setup, build-image]
