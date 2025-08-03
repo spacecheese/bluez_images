@@ -160,6 +160,8 @@ fi
 
 echo "[*] Compressing image..."
 qemu-img convert -O qcow2 -c "$OUTPUT_IMAGE" "${OUTPUT_IMAGE%.qcow2}-compressed.qcow2"
+rm -f $OUTPUT_IMAGE
+mv ${OUTPUT_IMAGE%.qcow2}-compressed.qcow2 $OUTPUT_IMAGE
 
 echo "[✓] Done!"
 echo " - Final image: ${WORKDIR}/${OUTPUT_IMAGE%.qcow2}-compressed.qcow2"
