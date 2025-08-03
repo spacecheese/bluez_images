@@ -7,6 +7,8 @@ on:
 
 jobs:
   setup:
+    runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
       matrix:
@@ -20,8 +22,6 @@ jobs:
           - bluez_version: "5.70"
             os: "ubuntu-24.04"
 
-    runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
       - id: resolve
@@ -29,16 +29,16 @@ jobs:
           ./resolve-os.sh "${{ matrix.os }}" >> $GITHUB_OUTPUT
 
     outputs:
-      matrix: toJson(strategy.matrix)
+      matrix: ${{ toJson(strategy.matrix) }}
       dockerimg: ${{ steps.resolve.outputs.dockerimg }}
 
   build-image:
-    strategy:
-      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
-
     needs: setup
     runs-on: ubuntu-latest
     container: ${{ needs.setup.outputs.dockerimg }}
+
+    strategy:
+      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
 
     env:
       OS: ${{ matrix.os }}
