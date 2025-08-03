@@ -9,36 +9,28 @@ jobs:
   setup:
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - bluez_version: "5.50"
-            os: "ubuntu-22.04"
-          - bluez_version: "5.64"
-            os: "ubuntu-24.04"
-          - bluez_version: "5.66"
-            os: "ubuntu-24.04"
-          - bluez_version: "5.70"
-            os: "ubuntu-24.04"
-
     steps:
       - uses: actions/checkout@v4
-      - id: resolve
+      - name: Set Matrix
         run: |
-          ./resolve-os.sh "${{ matrix.os }}" >> $GITHUB_OUTPUT
+          echo 'matrix={"include":[
+            {"bluez_version":"5.50","os":"ubuntu-22.04","build_container":"ubuntu:22.04"},
+            {"bluez_version":"5.64","os":"ubuntu-24.04","build_container":"ubuntu:24.04"},
+            {"bluez_version":"5.66","os":"ubuntu-24.04","build_container":"ubuntu:24.04"},
+            {"bluez_version":"5.70","os":"ubuntu-24.04","build_container":"ubuntu:24.04"}
+          ]}' >> $GITHUB_OUTPUT
 
     outputs:
-      matrix: ${{ toJson(strategy.matrix) }}
-      dockerimg: ${{ steps.resolve.outputs.dockerimg }}
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
 
   build-image:
     needs: setup
     runs-on: ubuntu-latest
-    container: ${{ needs.setup.outputs.dockerimg }}
 
     strategy:
       matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
+
+    container: ${{ matrix.build_container }}
 
     env:
       OS: ${{ matrix.os }}
@@ -68,14 +60,13 @@ jobs:
         path: ${{ env.IMAGE_SPEC }}/${{ env.IMAGE_SPEC }}-compressed.qcow2
 
     outputs:
-      matrix: toJson(strategy.matrix)
       output_image: ${{ env.IMAGE_SPEC }}.qcow2
 
   test-image:
     runs-on: ubuntu-latest
-    needs: build-image
+    needs: [setup, build-image]
     strategy: 
-      matrix: ${{ fromJson(needs.build-image.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
 
     steps:
       - name: Download image artifact
