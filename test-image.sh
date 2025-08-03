@@ -18,7 +18,7 @@ qemu-system-x86_64 \
     -serial file:serial.log \
     -daemonize
 
-ssh-keygen -R "[localhost]:2222"
+ssh-keygen -R "[localhost]:2222" || true
 
 SSH_UP=0
 for i in {1..30}; do
