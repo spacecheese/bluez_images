@@ -17,7 +17,7 @@ jobs:
           # Use | to preserve valid YAML syntax
           matrix: |
             include:
-            - bluez_version: "5.50"
+            - bluez_version: "5.51"
               os: "ubuntu-22.04"
               build_container: "ubuntu:22.04"
             - bluez_version: "5.64"
