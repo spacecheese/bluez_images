@@ -46,6 +46,7 @@ mkfs.vfat -n BLUEZ "$STAGING_IMAGE"
 
 # Mount and copy tarball
 mkdir -p "$WORKDIR/mnt"
+ls $WORKDIR
 mount -o loop "$STAGING_IMAGE" "$WORKDIR/mnt"
 cp "$WORKDIR/bluez-staging.tar.gz" "$WORKDIR/mnt/"
 sync
