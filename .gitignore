@@ -1,0 +1,4 @@
+*bluez*/
+!bluez-build/
+serial.log
+cloud-init/user-data.yml

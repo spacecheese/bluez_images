@@ -1,0 +1,2 @@
+instance-id: bluez-${BLUEZ_VERSION}
+local-hostname: bluez-vm

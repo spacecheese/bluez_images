@@ -1,0 +1,28 @@
+#cloud-config
+hostname: bluez-vm
+ssh_pwauth: false
+users:
+  - name: tester
+    groups: 
+      - sudo
+      - bluetooth
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh_authorized_keys:
+       - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGJBJZHldm3y5o2qC65rpq2qLTq18KBnG48uwDXJCBYr tester@bluez-vm
+
+growpart:
+  mode: auto
+  devices: ['/']
+  ignore_growroot_disabled: false
+
+resize_rootfs: true
+
+package_update: true
+packages:
+  - dbus
+  - python3
+  - python3-pip
+  - python3-venv
+  - rsync
+${EXTRA_PACKAGES}
